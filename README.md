@@ -17,11 +17,14 @@ Small VSCode Extension
 
 ## Requirements
 
-# `git clone https://github.com/matthewevans/vscode-textinfo.git`
-# cd vscode-textinfo
-# `npm install`
-# Open folder in VSCode
-# Press F5 to try it out.
+~~~
+git clone https://github.com/matthewevans/vscode-textinfo.git
+cd vscode-textinfo
+npm install
+~~~
+
+. Open folder in VSCode
+. Press F5 to try it out.
 
 ## Extension Settings
 

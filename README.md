@@ -23,8 +23,8 @@ cd vscode-textinfo
 npm install
 ~~~
 
-. Open folder in VSCode
-. Press F5 to try it out.
+* Open folder in VSCode
+* Press F5 to try it out.
 
 ## Extension Settings
 

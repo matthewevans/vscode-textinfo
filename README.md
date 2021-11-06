@@ -1,10 +1,10 @@
 # textinfo README
 
-Small VSCode Extension
+Small VSCode Extension.
 
 ## Features
 
-- Displays the estimated reading time remaining for the current document
+- Displays the estimated reading time remaining for the current document. Uses [text-readability](https://github.com/clearnote01/readability) package with custom module definition file.
 - For supported languages, comments will be detected and annotated to display the evaluated reading level, the following readability tests:
   - Flesch Kincaid Grade
   - Flesch Reading Ease (interpreted as a grade)
@@ -15,12 +15,15 @@ Small VSCode Extension
   - Linsear Write Formula
   - Gunning Fog Index
 
+Inspiration for language annotation derived from the [Better Comments](https://github.com/aaron-bond/better-comments) extension by Aaron Bond.
+
 ## Requirements
 
 ~~~
 git clone https://github.com/matthewevans/vscode-textinfo.git
 cd vscode-textinfo
 npm install
+git checkout node_modules # To restore .d.ts types file for text-readability package.
 ~~~
 
 * Open folder in VSCode

@@ -14,12 +14,6 @@
   ],
   "main": "./out/extension.js",
   "contributes": {
-    "commands": [
-      {
-        "command": "textinfo.codelensAction",
-        "title": "TextInfo CodeLens Action"
-      }
-    ],
     "configuration": {
       "title": "TextInfo configuration",
       "properties": {

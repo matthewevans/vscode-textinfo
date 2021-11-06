@@ -230,7 +230,7 @@ export class CommentReadability implements vscode.CodeLensProvider {
 				tooltip: `A grade median calculated from the following readability tests: Flesch Kincaid Grade, 
 						 Flesch Reading Ease (interpreted as a grade), SMOG Index, Coleman Liau Index, Automated 
 						 Readability Index, Dale Chall Readability Score, Linsear Write Formula, Gunning Fog Index`,
-				command: "textinfo.codelensAction"
+				command: '' // No command, makes this unclickable.
 			}));
 		}
 		

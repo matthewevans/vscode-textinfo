@@ -21,7 +21,6 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// Instantiate status bar item
 	let estimatedReadingTimeBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 0);
-	estimatedReadingTimeBarItem.command = 'textinfo.estimatedReadingTime';
 	context.subscriptions.push(estimatedReadingTimeBarItem);
 
 	estimatedReadingTimeBarItem.hide();
@@ -41,11 +40,6 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.window.onDidChangeTextEditorSelection(handleSelectionChanged));
 	context.subscriptions.push(vscode.window.onDidChangeTextEditorVisibleRanges(handleVisibleRangedUpdated));
 	context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(handleDocumentTextChanged));
-
-	// Register NOOP command
-	context.subscriptions.push(vscode.commands.registerCommand('textinfo.codelensAction', () => {
-		// NOOP
-	}));
 
 	// Do initial editor assign & start timer immediately for first render.
 	if (vscode.window.activeTextEditor) {

@@ -12,19 +12,10 @@ interface Contributions {
 	multilineComments: boolean;
 	useJSDocStyle: boolean;
 	highlightPlainText: boolean;
-	tags: [{
-		tag: string;
-		color: string;
-		strikethrough: boolean;
-		underline: boolean;
-		bold: boolean;
-		italic: boolean;
-		backgroundColor: string;
-	}];
+	tags: string[];
 }
 
 export class CommentReadability implements vscode.CodeLensProvider {
-	private tags: Map<string, CommentTag> = new Map<string, CommentTag>();
 	private expression: string = "";
 
 	private delimiter: string = "";
@@ -43,6 +34,8 @@ export class CommentReadability implements vscode.CodeLensProvider {
 
 	// * this is used to trigger the events when a supported language code is found
 	public supportedLanguage = true;
+	
+	private rangeMatches: [number, vscode.Range][] = [];
 
 	// Read from the package.json
 	private contributions: Contributions = vscode.workspace.getConfiguration('textinfo') as any;
@@ -52,7 +45,6 @@ export class CommentReadability implements vscode.CodeLensProvider {
     public readonly onDidChangeCodeLenses: vscode.Event<void> = this._onDidChangeCodeLenses.event;
 
 	public constructor() {
-		this.setTags();
 		vscode.languages.registerCodeLensProvider("*", this);
 	}
 
@@ -74,8 +66,10 @@ export class CommentReadability implements vscode.CodeLensProvider {
 		}
 
 		let characters: Array<string> = [];
-		for (let commentTag of this.tags.values()) {
-			characters.push(commentTag.escapedTag);
+
+		for (let item of this.contributions.tags) {
+			let escapedSequence = item.replace(/([()[{*+.$^\\|?])/g, '\\$1');
+			characters.push(escapedSequence.replace(/\//gi, "\\/"));
 		}
 
 		if (this.isPlainText && this.contributions.highlightPlainText) {
@@ -89,7 +83,7 @@ export class CommentReadability implements vscode.CodeLensProvider {
 		// Apply all configurable comment start tags
 		this.expression += "(";
 		this.expression += characters.join("|");
-		this.expression += ")+(.*)";
+		this.expression += ")*(.*)";
 	}
 
 	/**
@@ -111,20 +105,18 @@ export class CommentReadability implements vscode.CodeLensProvider {
 		while (match = regEx.exec(text)) {
 			let startPos = activeEditor.document.positionAt(match.index);
 			let endPos = activeEditor.document.positionAt(match.index + match[0].length);
-			let range = { range: new vscode.Range(startPos, endPos) };
 
 			// Required to ignore the first line of .py files (#61)
 			if (this.ignoreFirstLine && startPos.line === 0 && startPos.character === 0) {
 				continue;
 			}
 
-			// Find which custom delimiter was used in order to add it to the collection
-			// let matchTag = this.tags.find(item => item.tag.toLowerCase() === match[3].toLowerCase());
-			let matchTag = this.tags.get(match[3].toLowerCase());
+			let line = startPos.line;
 
-			if (matchTag) {
-				matchTag.ranges.push(range);
-			}
+			// Adjust start pos
+			startPos = activeEditor.document.positionAt(match.index + (match[0].length - match[4].length));
+
+			this.rangeMatches.push([line, new vscode.Range(startPos, endPos)]);
 		}
 	}
 
@@ -139,17 +131,6 @@ export class CommentReadability implements vscode.CodeLensProvider {
 		
 		let text = activeEditor.document.getText();
 
-		// Build up regex matcher for custom delimiter tags
-		let characters: Array<string> = [];
-		for (let commentTag of this.tags.values()) {
-			characters.push(commentTag.escapedTag);
-		}
-
-		// Combine custom delimiters and the rest of the comment block matcher
-		let commentMatchString = "(^)+([ \\t]*[ \\t]*)(";
-		commentMatchString += characters.join("|");
-		commentMatchString += ")([ ]*|[:])+([^*/][^\\r\\n]*)";
-
 		// Use start and end delimiters to find block comments
 		let regexString = "(^|[ \\t])(";
 		regexString += this.blockCommentStart;
@@ -158,29 +139,16 @@ export class CommentReadability implements vscode.CodeLensProvider {
 		regexString += ")";
 
 		let regEx = new RegExp(regexString, "gm");
-		let commentRegEx = new RegExp(commentMatchString, "igm");
 
 		// Find the multiline comment block
 		let match: any;
 		while (match = regEx.exec(text)) {
-			let commentBlock = match[0];
+			let line = activeEditor.document.positionAt(match.index).line;
 
-			// Find the line
-			let line;
-			while (line = commentRegEx.exec(commentBlock)) {
-				let startPos = activeEditor.document.positionAt(match.index + line.index + line[2].length);
-				let endPos = activeEditor.document.positionAt(match.index + line.index + line[0].length);
-				let range: vscode.DecorationOptions = { range: new vscode.Range(startPos, endPos) };
+			let startPos = activeEditor.document.positionAt(match.index + match[2].length);
+			let endPos = activeEditor.document.positionAt(match.index + match[0].length - match[4].length);
 
-				// Find which custom delimiter was used in order to add it to the collection
-				let matchString = line[3] as string;
-
-				let matchTag = this.tags.get(matchString.toLowerCase());
-
-				if (matchTag) {
-					matchTag.ranges.push(range);
-				}
-			}
+			this.rangeMatches.push([line, new vscode.Range(startPos, endPos)]);
 		}
 	}
 
@@ -195,42 +163,17 @@ export class CommentReadability implements vscode.CodeLensProvider {
 
 		let text = activeEditor.document.getText();
 
-		// Build up regex matcher for custom delimiter tags
-		let characters: Array<string> = [];
-		for (let commentTag of this.tags.values()) {
-			characters.push(commentTag.escapedTag);
-		}
-
 		// Combine custom delimiters and the rest of the comment block matcher
-		let commentMatchString = "(^)+([ \\t]*\\*[ \\t]*)("; // Highlight after leading *
 		let regEx = /(^|[ \t])(\/\*\*)+([\s\S]*?)(\*\/)/gm; // Find rows of comments matching pattern /** */
-
-		commentMatchString += characters.join("|");
-		commentMatchString += ")([ ]*|[:])+([^*/][^\\r\\n]*)";
-
-		let commentRegEx = new RegExp(commentMatchString, "igm");
 
 		// Find the multiline comment block
 		let match: any;
 		while (match = regEx.exec(text)) {
-			let commentBlock = match[0];
+			let line = activeEditor.document.positionAt(match.index).line;
+			let startPos = activeEditor.document.positionAt(match.index + match[2].length);
+			let endPos = activeEditor.document.positionAt(match.index + match[0].length - match[4].length);
 
-			// Find the line
-			let line;
-			while (line = commentRegEx.exec(commentBlock)) {
-				let startPos = activeEditor.document.positionAt(match.index + line.index + line[2].length);
-				let endPos = activeEditor.document.positionAt(match.index + line.index + line[0].length);
-				let range: vscode.DecorationOptions = { range: new vscode.Range(startPos, endPos) };
-
-				// Find which custom delimiter was used in order to add it to the collection
-				let matchString = line[3] as string;
-				// let matchTag = this.tags.find(item => item.tag.toLowerCase() === matchString.toLowerCase());
-				let matchTag = this.tags.get(matchString.toLowerCase());
-
-				if (matchTag) {
-					matchTag.ranges.push(range);
-				}
-			}
+			this.rangeMatches.push([line, new vscode.Range(startPos, endPos)]);
 		}
 	}
 
@@ -238,7 +181,7 @@ export class CommentReadability implements vscode.CodeLensProvider {
 		grade = Math.floor(grade)
 
 		// Assuming grade can't go > 100
-		if (grade > 10) {
+		if (grade > 20) {
 			grade = grade % 10;
 		}
 		
@@ -267,36 +210,31 @@ export class CommentReadability implements vscode.CodeLensProvider {
 
 		this.codeLenses = [];
 
-		for (let tag of this.tags.values()) {
-			//activeEditor.setDecorations(tag.decoration, tag.ranges);
+		for (let [line, range] of this.rangeMatches) {
 
-			// Probably not as efficient by re-grabbing all text
-			// but allows us to consolidate.
-			for (let range of tag.ranges) {
-				let commentText = activeEditor.document.getText(range.range);
+			let commentText = activeEditor.document.getText(range);
 
-				// Skip invalid grades
-				let grade = readability.textMedian(commentText);
+			// Skip invalid grades
+			let grade = readability.textMedian(commentText);
 
-				if (grade <= 0) {
-					continue;
-				}
-
-				grade = Math.floor(grade);
-
-				let display = CommentReadability.getGradeSuffix(grade);
-
-				this.codeLenses.push(new vscode.CodeLens(range.range, {
-					title: `Comment has a median reading level of ${grade}${display} grade`,
-					tooltip: "Tooltip provided by sample extension",
-					command: "codelens-sample.codelensAction", // What should command do?
-					arguments: ["Argument 1", false]           // Do args make sense?
-				}));
+			if (grade <= 0) {
+				continue;
 			}
-			
-			// clear the ranges for the next pass
-			tag.ranges.length = 0;
+
+			grade = Math.floor(grade);
+
+			let display = CommentReadability.getGradeSuffix(grade);
+
+			this.codeLenses.push(new vscode.CodeLens(activeEditor.document.lineAt(line).range, {
+				title: `Comment has a median reading level of ${grade}${display} grade`,
+				tooltip: `A grade median calculated from the following readability tests: Flesch Kincaid Grade, 
+						 Flesch Reading Ease (interpreted as a grade), SMOG Index, Coleman Liau Index, Automated 
+						 Readability Index, Dale Chall Readability Score, Linsear Write Formula, Gunning Fog Index`,
+				command: "textinfo.codelensAction"
+			}));
 		}
+		
+		this.rangeMatches.length = 0;
 
 		this._onDidChangeCodeLenses.fire();
 	}
@@ -481,44 +419,6 @@ export class CommentReadability implements vscode.CodeLensProvider {
 	}
 
 	/**
-	 * Sets the highlighting tags up for use by the parser
-	 */
-	private setTags(): void {
-		let items = this.contributions.tags;
-		for (let item of items) {
-			let options: vscode.DecorationRenderOptions = { color: item.color, backgroundColor: item.backgroundColor };
-
-			// ? the textDecoration is initialised to empty so we can concat a preceeding space on it
-			options.textDecoration = "";
-
-			if (item.strikethrough) {
-				options.textDecoration += "line-through";
-			}
-			
-			if (item.underline) {
-				options.textDecoration += " underline";
-			}
-			
-			if (item.bold) {
-				options.fontWeight = "bold";
-			}
-
-			if (item.italic) {
-				options.fontStyle = "italic";
-			}
-
-			let escapedSequence = item.tag.replace(/([()[{*+.$^\\|?])/g, '\\$1');
-			this.tags.set(item.tag.toLowerCase(), 
-			{
-				tag: item.tag,
-				escapedTag: escapedSequence.replace(/\//gi, "\\/"), // ! hardcoded to escape slashes
-				ranges: [],
-				decoration: vscode.window.createTextEditorDecorationType(options)
-			});
-		}
-	}
-
-	/**
 	 * Escapes a given string for use in a regular expression
 	 * @param input The input string to be escaped
 	 * @returns {string} The escaped string
@@ -538,8 +438,7 @@ export class CommentReadability implements vscode.CodeLensProvider {
 		// If no single line comment delimiter is passed, single line comments are not supported
 		if (singleLine) {
 			this.delimiter = this.escapeRegExp(singleLine);
-		}
-		else {
+		} else {
 			this.highlightSingleLineComments = false;
 		}
 

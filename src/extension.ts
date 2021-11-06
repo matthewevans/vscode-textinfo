@@ -4,6 +4,11 @@ import * as vscode from 'vscode';
 import { CommentReadability } from './commentreadability';
 import { EstimatedReadingTime } from './estimatedreadingtime';
 
+// Only include relevant contributions in this scope.
+interface Contributions {
+	estimatedReadingTime: boolean;
+}
+
 // this method is called when your extension is activated
 // your extension is activated the very first time the command is executed
 export function activate(context: vscode.ExtensionContext) {
@@ -11,24 +16,36 @@ export function activate(context: vscode.ExtensionContext) {
 	let commentReadability = new CommentReadability();
 	let estimatedReadingTime = new EstimatedReadingTime();
 
-	let updateDocument = () => {
-		if (!activeEditor) {
-			return;
-		}
-
-		refreshReadingTime();
-		commentReadability.UpdateCodeLens(activeEditor);
-	};
+	// Read from the package.json
+	let contributions: Contributions = vscode.workspace.getConfiguration('textinfo') as any;
 
 	// Instantiate status bar item
 	let estimatedReadingTimeBarItem = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Left, 0);
 	estimatedReadingTimeBarItem.command = 'textinfo.estimatedReadingTime';
 	context.subscriptions.push(estimatedReadingTimeBarItem);
 
+	estimatedReadingTimeBarItem.hide();
+
+	let updateDocument = () => {
+		if (!activeEditor) return;
+
+		commentReadability.UpdateCodeLens(activeEditor);
+
+		// Only trigger if it's enabled
+		if (contributions.estimatedReadingTime)
+			refreshReadingTime();
+	};
+
 	// Subscribe to desired events & add to auto-cleanup
 	context.subscriptions.push(vscode.window.onDidChangeActiveTextEditor(handleEditorChanged));
 	context.subscriptions.push(vscode.window.onDidChangeTextEditorSelection(handleSelectionChanged));
+	context.subscriptions.push(vscode.window.onDidChangeTextEditorVisibleRanges(handleVisibleRangedUpdated));
 	context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(handleDocumentTextChanged));
+
+	// Register NOOP command
+	context.subscriptions.push(vscode.commands.registerCommand('textinfo.codelensAction', () => {
+		// NOOP
+	}));
 
 	// Do initial editor assign & start timer immediately for first render.
 	if (vscode.window.activeTextEditor) {
@@ -44,12 +61,18 @@ export function activate(context: vscode.ExtensionContext) {
 			commentReadability.SetRegex(editor.document.languageId);
 
 			triggerDocumentUpdate();
-		} else {
+		} else if (estimatedReadingTime) {
 			estimatedReadingTimeBarItem.hide();
 		}
 	}
 
 	function handleSelectionChanged(event: vscode.TextEditorSelectionChangeEvent): void {
+		if (activeEditor && event.textEditor.document === activeEditor.document) {
+			triggerDocumentUpdate();
+		}
+	}
+
+	function handleVisibleRangedUpdated(event: vscode.TextEditorVisibleRangesChangeEvent): void {
 		if (activeEditor && event.textEditor.document === activeEditor.document) {
 			triggerDocumentUpdate();
 		}
@@ -63,12 +86,10 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// -- Event handling end
 
-	function refreshReadingTime(): void {	
+	function refreshReadingTime(): void {
 		estimatedReadingTimeBarItem.hide();
 
-		if (!activeEditor) {
-			return;
-		}
+		if (!activeEditor) return;
 	
 		// Cursor changing also triggers this event. If the anchor & active position are equal
 		// then only a cursor change occurred.

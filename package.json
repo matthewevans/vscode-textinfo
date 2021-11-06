@@ -16,13 +16,23 @@
   "contributes": {
     "commands": [
       {
-        "command": "textinfo.helloWorld",
-        "title": "Hello World"
+        "command": "textinfo.codelensAction",
+        "title": "TextInfo CodeLens Action"
       }
     ],
     "configuration": {
       "title": "TextInfo configuration",
       "properties": {
+        "textinfo.estimatedReadingTime": {
+            "type": "boolean",
+            "description": "Whether to show the estimated reading time.",
+            "default": true
+        },
+        "textinfo.estimatedReadingLevel": {
+            "type": "boolean",
+            "description": "Whether to display the estimated reading level.",
+            "default": true
+        },
         "textinfo.multilineComments": {
           "type": "boolean",
           "description": "Whether the multiline comment highlighter should be active",
@@ -37,51 +47,11 @@
           "type": "array",
           "description": "Tags which are used to color the comments. Changes require a restart of VS Code to take effect",
           "default": [
-            {
-              "tag": "!",
-              "color": "#FF2D00",
-              "strikethrough": false,
-              "underline": false,
-              "backgroundColor": "transparent",
-              "bold": false,
-              "italic": false
-            },
-            {
-              "tag": "?",
-              "color": "#3498DB",
-              "strikethrough": false,
-              "underline": false,
-              "backgroundColor": "transparent",
-              "bold": false,
-              "italic": false
-            },
-            {
-              "tag": "//",
-              "color": "#474747",
-              "strikethrough": true,
-              "underline": false,
-              "backgroundColor": "transparent",
-              "bold": false,
-              "italic": false
-            },
-            {
-              "tag": "todo",
-              "color": "#FF8C00",
-              "strikethrough": false,
-              "underline": false,
-              "backgroundColor": "transparent",
-              "bold": false,
-              "italic": false
-            },
-            {
-              "tag": "*",
-              "color": "#98C379",
-              "strikethrough": false,
-              "underline": false,
-              "backgroundColor": "transparent",
-              "bold": false,
-              "italic": false
-            }
+            "!",
+            "?",
+            "//",
+            "todo",
+            "*"
           ]
         }
       }

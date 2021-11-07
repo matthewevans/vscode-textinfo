@@ -226,10 +226,8 @@ export class CommentReadability implements vscode.CodeLensProvider {
             let display = CommentReadability.getGradeSuffix(grade);
 
             this.codeLenses.push(new vscode.CodeLens(activeEditor.document.lineAt(line).range, {
-                title: `Comment has a median reading level of ${grade}${display} grade`,
-                tooltip: `A grade median calculated from the following readability tests: Flesch Kincaid Grade, 
-                         Flesch Reading Ease (interpreted as a grade), SMOG Index, Coleman Liau Index, Automated 
-                         Readability Index, Dale Chall Readability Score, Linsear Write Formula, Gunning Fog Index`,
+                title: `Predicted reading level of ${grade}${display} grade`,
+                tooltip: `A grade median calculated from the following readability tests: Flesch Kincaid Grade, Flesch Reading Ease (interpreted as a grade), SMOG Index, Coleman Liau Index, Automated Readability Index, Dale Chall Readability Score, Linsear Write Formula, Gunning Fog Index`,
                 command: '' // No command, makes this unclickable.
             }));
         }

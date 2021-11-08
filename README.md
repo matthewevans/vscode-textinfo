@@ -38,3 +38,7 @@ This extension contributes the following settings:
 * `textinfo.multilineComments`: Whether the multiline comment highlighter should be active.
 * `textinfo.highlightPlainText`: Whether the plaintext comment highlighter should be active
 
+## Other Extensions
+
+* [vscode-ascii-preview](https://github.com/matthewevans/vscode-ascii-preview) - Image preview that generates ASCII art from image.
+

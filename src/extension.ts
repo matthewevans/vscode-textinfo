@@ -1,8 +1,9 @@
 // The module 'vscode' contains the VS Code extensibility API
 // Import the module and reference it with the alias vscode in your code below
 import * as vscode from 'vscode';
-import { CommentReadability } from './commentreadability';
-import { EstimatedReadingTime } from './estimatedreadingtime';
+import { CommentReadability } from './CommentReadability';
+import { EstimatedReadingTime } from './EstimatedReadingTime';
+import { ReadabilityCodeLensProvider } from './ReadabilityCodeLens';
 
 // Only include relevant contributions in this scope.
 interface Contributions {
@@ -14,6 +15,7 @@ interface Contributions {
 export function activate(context: vscode.ExtensionContext) {
     let activeEditor: vscode.TextEditor;
     let commentReadability = new CommentReadability();
+    let readabilityCodeLens = new ReadabilityCodeLensProvider();
     let estimatedReadingTime = new EstimatedReadingTime();
 
     // Read from the package.json
@@ -28,7 +30,8 @@ export function activate(context: vscode.ExtensionContext) {
     let updateDocument = () => {
         if (!activeEditor) return;
 
-        commentReadability.UpdateCodeLens(activeEditor);
+        commentReadability.UpdateComments(activeEditor);
+        readabilityCodeLens.UpdateCodeLens(activeEditor, commentReadability.comments);
 
         // Only trigger if it's enabled
         if (contributions.estimatedReadingTime)

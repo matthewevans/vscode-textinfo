@@ -10,10 +10,20 @@
     "Other"
   ],
   "activationEvents": [
-    "*"
+    "*",
+    "onView:textinfo.readabilityView"
   ],
   "main": "./out/extension.js",
   "contributes": {
+    "views": {
+      "explorer": [
+        {
+          "type": "webview",
+          "id": "textinfo.readabilityView",
+          "name": "Comment Readability"
+        }
+      ]
+    },
     "configuration": {
       "title": "TextInfo configuration",
       "properties": {
@@ -74,6 +84,8 @@
   },
   "dependencies": {
     "@vscode/webview-ui-toolkit": "^0.8.4",
+    "jscharting": "^3.1.0",
+    "json5": "^2.2.0",
     "text-readability": "^1.0.5"
   }
 }

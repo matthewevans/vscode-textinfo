@@ -1,5 +1,4 @@
 import * as vscode from "vscode";
-import * as readability from "text-readability";
 import { CommentReadability, CommentInstance } from './CommentReadability';
 
 export class ReadabilityCodeLensProvider implements vscode.CodeLensProvider {
@@ -38,7 +37,7 @@ export class ReadabilityCodeLensProvider implements vscode.CodeLensProvider {
         for (let comment of comments) {
 
             // Skip invalid grades
-            let grade = readability.textMedian(comment.text);
+            let grade = comment.stats.scores.get("textMedian") || 0;
 
             if (grade <= 0) {
                 continue;

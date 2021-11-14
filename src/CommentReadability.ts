@@ -1,12 +1,5 @@
 import * as vscode from "vscode";
-import * as readability from "text-readability";
-
-interface CommentTag {
-    tag: string;
-    escapedTag: string;
-    decoration: vscode.TextEditorDecorationType;
-    ranges: Array<vscode.DecorationOptions>;
-}
+import readability = require("text-readability");
 
 interface Contributions {
     showAnnotations: boolean;
@@ -16,21 +9,61 @@ interface Contributions {
     tags: string[];
 }
 
-enum CommentType {
+export enum CommentType {
     SingleLineComment = 0,
     MultiLineComment,
     JSDocComment
 }
 
-interface ReadabilityScore {
+export let ReadabilityAverages = [
+    "averageSentenceLength",
+    "averageSyllablePerWord",
+    "averageCharacterPerWord",
+    "averageLetterPerWord",
+    "averageSentencePerWord"
+]
 
-}
+export let ReadabilityCounts = [
+    "charCount",
+    "letterCount",
+    "lexiconCount",
+    "syllableCount",
+    "sentenceCount"
+]
+
+export let ReadabilityScores = [
+    "fleschReadingEase",
+    "fleschReadingEaseToGrade",
+    "fleschKincaidGrade",
+    "polySyllableCount",
+    "smogIndex",
+    "colemanLiauIndex",
+    "automatedReadabilityIndex",
+    "linsearWriteFormula",
+    // "presentTense",   // Returns a string. Ignoring.
+    // "difficultWords", // Returns a Set. Ignore.
+    "daleChallReadabilityScore",
+    "daleChallToGrade",
+    "gunningFog",
+    "lix",
+    "rix",
+    "textMedian"
+]
+
+export class ReadabilityStats {
+    [key: string]: Map<string, number>;
+    
+    public averages = new Map<string, number>();
+    public counts = new Map<string, number>();
+    public scores = new Map<string, number>();  
+  }
 
 export interface CommentInstance {
     line: number;
     range: vscode.Range;
     text: string;
     type: CommentType;
+    stats: ReadabilityStats;
 }
 
 export class CommentReadability {
@@ -113,7 +146,7 @@ export class CommentReadability {
         let regexFlags = this.isPlainText ? "igm" : "ig";
         let regEx = new RegExp(this.expression, regexFlags);
 
-        let matches: CommentInstance[] = this.matchText(activeEditor, text, regEx, CommentType.JSDocComment,
+        let matches: CommentInstance[] = this.matchText(activeEditor, text, regEx, CommentType.SingleLineComment,
             (match): [number | undefined, vscode.Range | null] => {
                 let startPos = activeEditor.document.positionAt(match.index);
                 let endPos = activeEditor.document.positionAt(match.index + match[0].length);
@@ -237,6 +270,12 @@ export class CommentReadability {
         return gradeMap[grade] ? gradeMap[grade] : "th";
     }
 
+    private _populateStats(attrs:string[], text: string) {
+        return attrs.reduce(function (map, attr: string) {
+            return map.set(attr, readability[attr](text) ?? 0);
+        }, new Map<string, number>());
+    }
+
     /**
      * Apply decorations after finding all relevant comments
      * @param activeEditor The active text editor containing the code document
@@ -256,41 +295,14 @@ export class CommentReadability {
         matches.push(...this.FindBlockComments(activeEditor, text));
         matches.push(...this.FindJSDocComments(activeEditor, text));
 
-        for (let comment of this.comments) {
-            let grade = readability.textMedian(comment.text);
+        // let r = new rd.Readability();
 
-            // charCount(text: any, ignoreSpaces?: boolean): any;
-            // letterCount(text: any, ignoreSpaces?: boolean): any;
-            // removePunctuation(text: any): any;
-
-            // lexiconCount(text: any, removePunctuation?: boolean): any;
-            // syllableCount(text: any, lang?: string): any;
-            // sentenceCount(text: any): number;
-
-            // averageSentenceLength(text: any): any;
-            // averageSyllablePerWord(text: any): any;
-            // averageCharacterPerWord(text: any): any;
-            // averageLetterPerWord(text: any): any;
-            // averageSentencePerWord(text: any): any;
-
-            // fleschReadingEase(text: any): any;
-            // fleschReadingEaseToGrade(score: any): 5 | 6 | 7 | 8.5 | 11 | 13 | 15 | 16;
-            // fleschKincaidGrade(text: any): any;
-            // polySyllableCount(text: any): number;
-            // smogIndex(text: any): any;
-            // colemanLiauIndex(text: any): any;
-
-            // automatedReadabilityIndex(text: any): any;
-            // linsearWriteFormula(text: any): number;
-            // presentTense(word: any): any;
-            // difficultWords(text: any, syllableThreshold?: number): number | Set<any>;
-            // daleChallReadabilityScore(text: any): any;
-            // daleChallToGrade(score: any): 5 | 7 | 11 | 13 | 16 | 4 | 9;
-            // gunningFog(text: any): any;
-            // lix(text: any): any;
-            // rix(text: any): any;
-
-            // textStandard(text: any, floatOutput?: any): any;
+        // Process tests
+        for (let comment of matches) {
+            comment.stats = new ReadabilityStats();
+            comment.stats.counts = this._populateStats(ReadabilityCounts, comment.text);
+            comment.stats.averages = this._populateStats(ReadabilityAverages, comment.text);
+            comment.stats.scores = this._populateStats(ReadabilityScores, comment.text);
         }
 
         this._comments = matches;

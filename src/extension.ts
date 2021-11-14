@@ -4,6 +4,7 @@ import * as vscode from 'vscode';
 import { CommentReadability } from './CommentReadability';
 import { EstimatedReadingTime } from './EstimatedReadingTime';
 import { ReadabilityCodeLensProvider } from './ReadabilityCodeLens';
+import { ReadabilityViewProvider } from './ReadabilityView';
 
 // Only include relevant contributions in this scope.
 interface Contributions {
@@ -17,6 +18,15 @@ export function activate(context: vscode.ExtensionContext) {
     let commentReadability = new CommentReadability();
     let readabilityCodeLens = new ReadabilityCodeLensProvider();
     let estimatedReadingTime = new EstimatedReadingTime();
+
+    const readabilityView = new ReadabilityViewProvider(context.extensionUri, commentReadability);
+
+    // Register the provider for a Webview View
+    const readabilityViewDisposable = vscode.window.registerWebviewViewProvider(
+        ReadabilityViewProvider.viewType,
+        readabilityView
+    );
+    context.subscriptions.push(readabilityViewDisposable);
 
     // Read from the package.json
     let contributions: Contributions = vscode.workspace.getConfiguration('textinfo') as any;
@@ -32,6 +42,7 @@ export function activate(context: vscode.ExtensionContext) {
 
         commentReadability.UpdateComments(activeEditor);
         readabilityCodeLens.UpdateCodeLens(activeEditor, commentReadability.comments);
+        readabilityView.updateWebView();
 
         // Only trigger if it's enabled
         if (contributions.estimatedReadingTime)
@@ -74,7 +85,7 @@ export function activate(context: vscode.ExtensionContext) {
             triggerDocumentUpdate();
         }
     }
-    
+
     function handleDocumentTextChanged(event: vscode.TextDocumentChangeEvent): void {
         if (activeEditor && event.document === activeEditor.document) {
             triggerDocumentUpdate();
@@ -87,7 +98,7 @@ export function activate(context: vscode.ExtensionContext) {
         estimatedReadingTimeBarItem.hide();
 
         if (!activeEditor) return;
-    
+
         // Cursor changing also triggers this event. If the anchor & active position are equal
         // then only a cursor change occurred.
         if (activeEditor.selection.anchor.isEqual(activeEditor.selection.active)) {
@@ -97,7 +108,7 @@ export function activate(context: vscode.ExtensionContext) {
             estimatedReadingTimeBarItem.show();
         }
     }
-    
+
     // * IMPORTANT:
     // To avoid calling update too often,
     // set a timer for 200ms to wait before updating decorations
@@ -111,4 +122,4 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 // this method is called when your extension is deactivated
-export function deactivate() {}
+export function deactivate() { }

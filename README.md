@@ -15,6 +15,9 @@ Small VSCode Extension.
   - Linsear Write Formula
   - Gunning Fog Index
 
+- Displays a webview with a Boxplot frequency distribution of all included calculations and tests provided by the text-readability package.
+- Plus a tiny pie chart for type frequency display.
+
 Uses [text-readability](https://github.com/clearnote01/readability) package with custom module definition file.
 Inspiration for language annotation derived from the [Better Comments](https://github.com/aaron-bond/better-comments) extension by Aaron Bond.
 

@@ -125,15 +125,14 @@ export class ReadabilityViewProvider implements WebviewViewProvider {
       return [];
     }
 
-    values = values.sort();
+    values = values.sort((n1, n2) => n1 - n2);
 
     let count = values.length;
 
     if (count == 0) {
       return [];
     } else if (count == 1) {
-      let v = values[0];
-      return [v, v, v, v, v];
+      return Array(5).fill(values[0]);
     }
 
     // Calculate limits
@@ -177,7 +176,7 @@ export class ReadabilityViewProvider implements WebviewViewProvider {
   }
 
   // Create the config JSON to use
-  private _createChartsConfig(): ReadabilityChartsConfig {
+  private _createChartsConfig(): ReadabilityChartsConfig | undefined {
     let chartsConfig: ReadabilityChartsConfig = {
       counts: {},
       averages: {},
@@ -185,8 +184,8 @@ export class ReadabilityViewProvider implements WebviewViewProvider {
       types: {}
     };
 
-    if (!this._readability.comments) {
-      return chartsConfig;
+    if (!this._readability.comments.length) {
+      return undefined;
     }
 
     let fn: ChartFunc = this._makeBoxplotConfig;
@@ -231,6 +230,21 @@ export class ReadabilityViewProvider implements WebviewViewProvider {
     const canvasJSUri = getUri(webview, extensionUri, ['media', 'canvasjs.min.js'])
 
     let chartsConfig = this._createChartsConfig();
+
+    if (!chartsConfig) {
+      return `
+      <!DOCTYPE html>
+			<html lang="en">
+				<head>
+					<meta charset="UTF-8">
+					<meta name="viewport" content="width=device-width, initial-scale=1.0">
+					<title>Comment Stats</title>
+				</head>
+				<body>
+        <p>No comments found. Please open a file that contains a supported comment type.</p>
+        </body>
+        </html>`;
+    }
 
     // Tip: Install the es6-string-html VS Code extension to enable code highlighting below
     return /*html*/ `

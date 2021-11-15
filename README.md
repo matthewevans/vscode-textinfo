@@ -32,6 +32,8 @@ npm install
 * Open folder in VSCode
 * Press F5 to try it out.
 
+![Sample Screenshot](/assets/screencap.png?raw=true "Screenshot")
+
 ## Extension Settings
 
 This extension contributes the following settings:

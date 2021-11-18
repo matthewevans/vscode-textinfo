@@ -109,7 +109,7 @@ export class ReadabilityViewProvider implements WebviewViewProvider {
   private _findMedian(values: number[], begin: number, end: number): number {
     let count = end - begin;
 
-    let halfCount:number = Math.floor(count / 2);
+    let halfCount: number = Math.floor(count / 2);
 
     if (count % 2 === 1) {
       return values[(halfCount) + begin];
@@ -175,6 +175,25 @@ export class ReadabilityViewProvider implements WebviewViewProvider {
     return data;
   }
 
+  private _makeTypesBarConfig(attrs?: string[], stat?: string, options: {} = {}): any[] {
+    let types = this._readability.comments
+      .reduce((map, comment) =>
+        map.set(comment.type, (map.get(comment.type) ?? 0) + 1),
+        new Map<CommentType, number>());
+
+    return [{
+      type: "column",
+      dataPoints: Array.from(types.entries())
+      .map(function ([type, count]) {
+        return {
+          label: CommentType[type],
+          y: count
+        };
+      }),
+      ...options
+    }];
+  }
+
   // Create the config JSON to use
   private _createChartsConfig(): ReadabilityChartsConfig | undefined {
     let chartsConfig: ReadabilityChartsConfig = {
@@ -190,7 +209,7 @@ export class ReadabilityViewProvider implements WebviewViewProvider {
 
     let fn: ChartFunc = this._makeBoxplotConfig;
 
-    chartsConfig.types = this._makeCanvasJSConfig(ReadabilityStat.Types, this._makePieTypesConfig);
+    chartsConfig.types = this._makeCanvasJSConfig(ReadabilityStat.Types, this._makeTypesBarConfig);
     chartsConfig.scores = this._makeCanvasJSConfig(ReadabilityStat.Scores, fn);
     chartsConfig.averages = this._makeCanvasJSConfig(ReadabilityStat.Averages, fn);
     chartsConfig.counts = this._makeCanvasJSConfig(ReadabilityStat.Counts, fn);
